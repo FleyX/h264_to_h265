@@ -11,7 +11,7 @@ async function deal (basePath) {
 			continue;
 		}
 		console.log("---------开始处理:" + name);
-		let  filePath = path.join(basePath, name);
+		let filePath = path.join(basePath, name);
 		let res = JSON.parse(cmd.execSync(`ffprobe.exe "${filePath}" -show_streams -select_streams v -show_format  -print_format json`, { encoding: 'utf-8' }));
 		if (!res.format || !res.streams || res.streams.length == 0) {
 			console.log("无法识别的格式：" + JSON.stringify(res));
@@ -38,10 +38,15 @@ async function deal (basePath) {
 			let index = name.lastIndexOf('.');
 			newName = name.substr(0, index) + ".h265" + name.substr(index);
 		}
-		let cmdStr = `ffmpeg.exe -hwaccel cuda -c:v h264_cuvid -i "${filePath}" -c:v hevc_nvenc -maxrate ${bitRate}K -c:a copy "${path.join(basePath, newName)}"`;
+		let newFilePath = path.join(basePath, newName);
+		let cmdStr = `ffmpeg.exe -hwaccel cuda -c:v h264_cuvid -i "${filePath}" -c:v hevc_nvenc -maxrate ${bitRate}K -c:a copy "${newFilePath}"`;
 		console.log(cmdStr);
 		let changeRes = cmd.execSync(cmdStr, { encoding: 'utf-8' });
 		console.log(changeRes);
+		if (!fs.existsSync(newFilePath)) {
+			console.log("未知错误，文件转换失败");
+			return;
+		}
 		//字幕，nfo文件重命名
 		let namePart1 = name.substr(0, name.lastIndexOf('.'));
 		let newNamePart1 = newName.substr(0, newName.lastIndexOf('.'));
