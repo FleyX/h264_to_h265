@@ -1,0 +1,2 @@
+ffmpeg.exe -i "./Shameless.1080p.h264.s11e01.mkv" -c:v hevc_qsv -c:a copy "./newQsvShameless.1080p.h264.s11e01.mkv" -x265-params lossless=1
+ffmpeg.exe -hwaccel cuvid -c:v h263_cuvid -i ./Shameless.1080p.h264.s11e01.mkv -c:v hevc_nvenc -b:v 2548k  ./newShameless.1080p.h264.s11e01.mkv
