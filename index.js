@@ -65,7 +65,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			newName = name.substr(0, index) + ".h265" + name.substr(index);
 		}
 		let newFilePath = path.join(basePath, newName);
-		let cmdStr = `ffmpeg.exe ${hwType} ${decodeType} -i "${filePath}" ${encodeType} -maxrate ${bitRate}K -c:a copy "${newFilePath}"`;
+		let cmdStr = `ffmpeg.exe ${hwType} ${decodeType} -i "${filePath}" ${encodeType} -maxrate ${bitRate}K -acodec aac -strict -2 -ab 256K "${newFilePath}"`;
 		console.log(cmdStr);
 		let changeRes = cmd.execSync(cmdStr, { encoding: 'utf-8' });
 		console.log(changeRes);
