@@ -2,8 +2,9 @@ const fs = require('fs-extra');
 const path = require('path');
 
 const cmd = require('child_process');
-const hardTypeSet = new Set("none", "qsv", "cuda");
-const supportVideoTypeSet = new Set("mkv", "mp4");
+const hardTypeSet = new Set(["none", "qsv", "cuda"]);
+const supportVideoTypeSet = new Set(["mkv", "mp4"]);
+const replaceTextArr = ['h264', 'H264', 'x264', 'X264'];
 
 /**
  * 
@@ -15,19 +16,22 @@ const supportVideoTypeSet = new Set("mkv", "mp4");
  */
 async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) {
 	let hwType = hardType == 'qsv' ? "-hwaccel qsv" : hardType == 'cuda' ? "-hwaccel cuda" : "";
-	let decodeType = hardType == 'qsv' ? "-c:v h264_qsv" : hardType == 'cuda' ? "-c:v hevc_qsv" : "";
-	let encodeType = hardType == 'qsv' ? "-c:v h264_cuvid" : hardType == 'cuda' ? "-c:v hevc_nvenc" : "";
+	let decodeType = hardType == 'qsv' ? "-c:v h264_qsv" : hardType == 'cuda' ? "-c:v h264_cuvid" : "";
+	let encodeType = hardType == 'qsv' ? "-c:v hevc_qsv" : hardType == 'cuda' ? "-c:v hevc_nvenc" : "";
 
-	if (!hardType && !hardTypeSet.has(hardType)) {
+	if (hardType && !hardTypeSet.has(hardType)) {
 		throw new Error("不支持的加速方案:" + hardType + ",仅支持:空," + JSON.stringify(hardTypeSet));
 	}
 	let fileList = fs.readdirSync(basePath);
 	for (let i in fileList) {
 		let name = fileList[i];
 		let filePath = path.join(basePath, name);
-		if (fs.statSync(filePath).isDirectory) {
+		if (!fs.existsSync(filePath)) {
+			continue;
+		}
+		if (fs.statSync(filePath).isDirectory()) {
 			//如果为文件夹递归处理
-			deal(filePath, maxBitRate, hardType);
+			await deal(filePath, maxBitRate, changeName, hardType);
 		}
 		if (!supportVideoTypeSet.has(name.substring(name.lastIndexOf(".") + 1))) {
 			continue;
@@ -50,12 +54,13 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 		}
 		bitRate = Math.round(parseInt(bitRate) / 1000);
 		bitRate = bitRate > maxBitRate ? maxBitRate : bitRate;
-		let newName;
-		if (name.indexOf("h264") > -1) {
-			newName = name.replace('h264', 'h265');
-		} else if (name.indexOf('H264') > -1) {
-			newName = name.replace('H264', 'H265');
-		} else {
+		let newName = null;
+		replaceTextArr.forEach(item => {
+			if (newName == null && name.indexOf(item) > -1) {
+				newName = name.replace(item, 'h265');
+			}
+		})
+		if (newName == null) {
 			let index = name.lastIndexOf('.');
 			newName = name.substr(0, index) + ".h265" + name.substr(index);
 		}
@@ -73,7 +78,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			let namePart1 = name.substr(0, name.lastIndexOf('.'));
 			let newNamePart1 = newName.substr(0, newName.lastIndexOf('.'));
 			fileList.forEach(item => {
-				if (item.startsWith(namePart1) && (item.endsWith('.nfo') || item.endsWith('.srt') || item.endsWith('.ass'))) {
+				if (item.startsWith(namePart1) && item != name) {
 					let temp = item.replace(namePart1, newNamePart1);
 					if (item != temp) {
 						fs.renameSync(path.join(basePath, item), path.join(basePath, temp));
@@ -88,6 +93,6 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 	}
 }
 (async () => {
-	await deal("要处理的文件夹", 2500, true, "cuda");
+	await deal("Z:\\userData\\视频\\剧集\\美剧\\亿万.Billions", 2500, true, "cuda");
 })();
 
