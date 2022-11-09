@@ -52,8 +52,9 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			console.log("未获取到帧率，不处理", JSON.stringify(res));
 			continue;
 		}
+		let is10Bit = res.streams.filter(item => item.bits_per_raw_sample === '10').length > 0;
 		bitRate = Math.round(parseInt(bitRate) / 1000);
-		bitRate = bitRate > maxBitRate ? maxBitRate : bitRate;
+		bitRate = bitRate > maxBitRate * 2 ? maxBitRate : bitRate / 2;
 		let newName = null;
 		replaceTextArr.forEach(item => {
 			if (newName == null && name.indexOf(item) > -1) {
@@ -65,7 +66,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			newName = name.substr(0, index) + ".h265" + name.substr(index);
 		}
 		let newFilePath = path.join(basePath, newName);
-		let cmdStr = `ffmpeg.exe ${hwType} ${decodeType} -i "${filePath}" ${encodeType} -maxrate ${bitRate}K -acodec aac -strict -2 -ab 256K "${newFilePath}"`;
+		let cmdStr = `ffmpeg.exe ${hwType} ${is10Bit ? "" : decodeType} -i "${filePath}" ${encodeType} -maxrate ${bitRate}K -c:a copy -y "${newFilePath}"`;
 		console.log(cmdStr);
 		let changeRes = cmd.execSync(cmdStr, { encoding: 'utf-8' });
 		console.log(changeRes);
@@ -93,6 +94,6 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 	}
 }
 (async () => {
-	await deal("Z:\\userData\\视频\\剧集\\美剧\\亿万.Billions", 2500, true, "cuda");
+	await deal("Z:\\userData\\视频\\剧集", 2500, true, "cuda");
 })();
 
