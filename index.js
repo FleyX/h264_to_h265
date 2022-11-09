@@ -1,11 +1,17 @@
 const fs = require('fs-extra');
 const path = require('path');
+const crypto = require('crypto');
 
 const cmd = require('child_process');
+
+const cachePath = './cache.json';
 const hardTypeSet = new Set(["none", "qsv", "cuda"]);
 const supportVideoTypeSet = new Set(["mkv", "mp4"]);
 const replaceTextArr = ['h264', 'H264', 'x264', 'X264'];
-
+let cache = {};
+if (fs.existsSync(cachePath)) {
+	cache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+}
 /**
  * 
  * @param {*} basePath 处理路径
@@ -29,10 +35,16 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 		if (!fs.existsSync(filePath)) {
 			continue;
 		}
+
 		if (fs.statSync(filePath).isDirectory()) {
 			//如果为文件夹递归处理
 			await deal(filePath, maxBitRate, changeName, hardType);
 		}
+		const md5Str = crypto.createHash('md5').update(filePath).digest('hex');
+		if (cache[md5Str]) {
+			continue;
+		}
+		cache[md5Str] = true;
 		if (!supportVideoTypeSet.has(name.substring(name.lastIndexOf(".") + 1))) {
 			continue;
 		}
@@ -91,6 +103,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 		if (!changeName) {
 			fs.moveSync(newFilePath, filePath);
 		}
+		await fs.writeFile(cachePath, JSON.stringify(cache));
 	}
 }
 (async () => {
