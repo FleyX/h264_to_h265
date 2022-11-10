@@ -2,16 +2,23 @@ const fs = require('fs-extra');
 const path = require('path');
 const crypto = require('crypto');
 
-const cmd = require('child_process');
+const cmd = require('shelljs');
 
 const cachePath = './cache.json';
 const hardTypeSet = new Set(["none", "qsv", "cuda"]);
 const supportVideoTypeSet = new Set(["mkv", "mp4"]);
 const replaceTextArr = ['h264', 'H264', 'x264', 'X264'];
 let cache = {};
-if (fs.existsSync(cachePath)) {
-	cache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
-}
+
+
+
+(async () => {
+	if (fs.existsSync(cachePath)) {
+		cache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
+	}
+	await deal("Z:\\userData\\视频\\动漫", 2500, true, "cuda");
+})();
+
 /**
  * 
  * @param {*} basePath 处理路径
@@ -49,7 +56,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			continue;
 		}
 		console.log("---------开始处理:" + name);
-		let res = JSON.parse(cmd.execSync(`ffprobe.exe "${filePath}" -show_streams -select_streams v -show_format  -print_format json`, { encoding: 'utf-8' }));
+		let res = JSON.parse(cmd.exec(`ffprobe.exe "${filePath}" -show_streams -select_streams v -show_format  -print_format json`, { encoding: 'utf-8' }).stdout);
 		if (!res.format || !res.streams || res.streams.length == 0) {
 			console.log("无法识别的格式：" + JSON.stringify(res));
 			continue;
@@ -80,9 +87,14 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 		let newFilePath = path.join(basePath, newName);
 		let cmdStr = `ffmpeg.exe ${hwType} ${is10Bit ? "" : decodeType} -i "${filePath}" ${encodeType} -maxrate ${bitRate}K -c:a copy -y "${newFilePath}"`;
 		console.log(cmdStr);
-		let changeRes = cmd.execSync(cmdStr, { encoding: 'utf-8' });
-		console.log(changeRes);
-		if (!fs.existsSync(newFilePath)) {
+		let cmdRes = await cmd.exec(cmdStr);
+		let index = cmdRes.stderr.indexOf("video:");
+		if (index == -1) {
+			throw Error(cmdRes.stderr);
+		} else {
+			console.log("转换倍率：" + cmdRes.stderr.substring(index - 20));
+		}
+		if (!fs.existsSync(newFilePath) || fs.statSync(newFilePath).size <= 10000) {
 			console.log("未知错误，文件转换失败");
 			return;
 		}
@@ -106,7 +118,4 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 		await fs.writeFile(cachePath, JSON.stringify(cache));
 	}
 }
-(async () => {
-	await deal("Z:\\userData\\视频\\剧集", 2500, true, "cuda");
-})();
 
