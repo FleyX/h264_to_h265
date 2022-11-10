@@ -9,6 +9,11 @@ const hardTypeSet = new Set(["none", "qsv", "cuda"]);
 const supportVideoTypeSet = new Set(["mkv", "mp4"]);
 const replaceTextArr = ['h264', 'H264', 'x264', 'X264'];
 let cache = {};
+let timer = setInterval(saveFile, 5000);
+function saveFile () {
+	console.log("保存数据");
+	fs.writeFileSync(cachePath, JSON.stringify(cache));
+}
 
 
 
@@ -16,7 +21,11 @@ let cache = {};
 	if (fs.existsSync(cachePath)) {
 		cache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
 	}
-	await deal("Z:\\userData\\视频\\动漫", 2500, true, "cuda");
+	await deal("Z:\\userData\\视频\\电影", 2500, true, "cuda");
+	if (timer) {
+		clearInterval(timer);
+	}
+	saveFile();
 })();
 
 /**
@@ -43,7 +52,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			continue;
 		}
 
-		if (fs.statSync(filePath).isDirectory()) {
+		if ((await fs.stat(filePath)).isDirectory()) {
 			//如果为文件夹递归处理
 			await deal(filePath, maxBitRate, changeName, hardType);
 		}
@@ -94,9 +103,8 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 		} else {
 			console.log("转换倍率：" + cmdRes.stderr.substring(index - 20));
 		}
-		if (!fs.existsSync(newFilePath) || fs.statSync(newFilePath).size <= 10000) {
-			console.log("未知错误，文件转换失败");
-			return;
+		if (!fs.existsSync(newFilePath) || fs.statSync(newFilePath).size <= 10000 || cmdRes.stderr.indexOf('Error') > -1) {
+			throw new Error("未知错误，文件转换失败");
 		}
 		if (changeName) {
 			//字幕，nfo文件重命名
@@ -111,11 +119,10 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 				}
 			})
 		}
-		fs.removeSync(filePath);
+		await fs.remove(filePath);
 		if (!changeName) {
-			fs.moveSync(newFilePath, filePath);
+			await fs.move(newFilePath, filePath);
 		}
-		await fs.writeFile(cachePath, JSON.stringify(cache));
 	}
 }
 
