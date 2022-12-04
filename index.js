@@ -21,7 +21,7 @@ function saveFile () {
 	if (fs.existsSync(cachePath)) {
 		cache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
 	}
-	await deal("Z:\\userData\\视频\\电影", 2500, true, "cuda");
+	await deal("Z:\\userData\\视频", 2500, true, "cuda");
 	if (timer) {
 		clearInterval(timer);
 	}
@@ -81,8 +81,12 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			continue;
 		}
 		let is10Bit = res.streams.filter(item => item.bits_per_raw_sample === '10').length > 0;
-		bitRate = Math.round(parseInt(bitRate) / 1000);
-		bitRate = bitRate > maxBitRate * 2 ? maxBitRate : bitRate / 2;
+		let originBitRate = Math.round(parseInt(bitRate) / 1000);
+		bitRate = originBitRate > maxBitRate * 2 ? maxBitRate : originBitRate / 2;
+		if (bitRate < 1000) {
+			bitRate = originBitRate * 0.75;
+		}
+
 		let newName = null;
 		replaceTextArr.forEach(item => {
 			if (newName == null && name.indexOf(item) > -1) {
