@@ -82,10 +82,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 		}
 		let is10Bit = res.streams.filter(item => item.bits_per_raw_sample === '10').length > 0;
 		let originBitRate = Math.round(parseInt(bitRate) / 1000);
-		bitRate = originBitRate > maxBitRate * 2 ? maxBitRate : originBitRate / 2;
-		if (bitRate < 1000) {
-			bitRate = originBitRate * 0.75;
-		}
+		bitRate = originBitRate > maxBitRate ? maxBitRate : originBitRate * 0.7;
 
 		let newName = null;
 		replaceTextArr.forEach(item => {
