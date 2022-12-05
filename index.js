@@ -21,7 +21,7 @@ function saveFile () {
 	if (fs.existsSync(cachePath)) {
 		cache = JSON.parse(fs.readFileSync(cachePath, 'utf-8'));
 	}
-	await deal("Z:\\userData\\视频", 2500, true, "cuda");
+	await deal("Z:\\userData\\视频", 3000, true, "cuda");
 	if (timer) {
 		clearInterval(timer);
 	}
@@ -95,7 +95,7 @@ async function deal (basePath, maxBitRate = 2500, changeName = false, hardType) 
 			newName = name.substr(0, index) + ".h265" + name.substr(index);
 		}
 		let newFilePath = path.join(basePath, newName);
-		let cmdStr = `ffmpeg.exe ${hwType} ${is10Bit ? "" : decodeType} -i "${filePath}" ${encodeType} -maxrate ${bitRate}K -c:a copy -y "${newFilePath}"`;
+		let cmdStr = `ffmpeg.exe ${hwType} ${is10Bit ? "" : decodeType} -i "${filePath}" -map 0 ${encodeType} -maxrate ${bitRate}K -c:a copy -c:s copy -y "${newFilePath}"`;
 		console.log(cmdStr);
 		let cmdRes = await cmd.exec(cmdStr);
 		let index = cmdRes.stderr.indexOf("video:");
